@@ -24,9 +24,8 @@ function Board({isXNext, squares , onPlay}) {
       nextSquares[i] = 'X';
     } else {
       nextSquares[i] = 'O';
-      
     }
-    onPlay(nextSquares);
+    onPlay(nextSquares, i);
   }
   // get winner and winning line (if any)
   const result = calculateWinnerLine(squares);
@@ -69,16 +68,17 @@ function Board({isXNext, squares , onPlay}) {
 function Game() {
   
   const [switches, setSwitches] = useState(true);
-  // initialize history as an array with one board (9 nulls)
-  const [history,setHistory] = useState([Array(9).fill(null)]);
+  // history entries are [squaresArray, changedIndex|null]
+  const [history,setHistory] = useState([[Array(9).fill(null), null]]);
   
   const [currentMove, setCurrentMove] = useState(0);
   
   
   const xIsNext = currentMove % 2 === 0;
-  const currentSquares = history[currentMove];
-  function handlePlay(nextSquares) {
-    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+  // get the squares array from the current history entry
+  const currentSquares = history[currentMove][0];
+  function handlePlay(nextSquares, change) {
+    const nextHistory = [...history.slice(0, currentMove + 1), [nextSquares, change]];
     setHistory(nextHistory);
     setCurrentMove(nextHistory.length - 1);
   }
@@ -93,12 +93,13 @@ function Game() {
   
   
   const moves = switches
-    ? history.map((squares, move) => {
+    ? history.map(([squares, change], move) => {
         const description = move > 0 ? 'Go to move #' + move : 'Go to game start';
+        const changedPosStr = change != null ? ` (${change % 3 + 1}, ${Math.floor(change / 3) + 1})` : '';
         return (
           <li key={move}>
             {move === currentMove ? (
-              <span>You are at move #{move}</span>
+              <span>{`You are at move #${move}${changedPosStr}`}</span>
             ) : (
               <button onClick={() => jumpTo(move)}>{description}</button>
             )}
@@ -108,13 +109,14 @@ function Game() {
     : history
         .slice()
         .reverse()
-        .map((squares, move) => {
+        .map(([squares, change], move) => {
           const actualMove = history.length - 1 - move;
+          const changedPosStr = change != null ? ` (${change % 3 + 1}, ${Math.floor(change / 3) + 1})` : '';
           const description = actualMove > 0 ? 'Go to move #' + actualMove : 'Go to game start';
           return (
             <li key={actualMove}>
               {actualMove === currentMove ? (
-                <span>You are at move #{actualMove}</span>
+                <span>{`You are at move #${actualMove}${changedPosStr}`}</span>
               ) : (
                 <button onClick={() => jumpTo(actualMove)}>{description}</button>
               )}
@@ -151,7 +153,7 @@ function ToggleButton({switches, handleSwitches}) {
   );
 }
 
-// new helper: returns both winner and winning line indices
+// returns both winner and winning line indices
 function calculateWinnerLine(squares) {
   const lines = [
     [0, 1, 2],
