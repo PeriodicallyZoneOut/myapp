@@ -1,10 +1,11 @@
 import React from 'react';
 import { useState } from 'react';
 
-function Square({ value, onSquareClick}) {
+function Square({ value, onSquareClick, isWinning }) {
+  // use isWinning prop directly
   return (
     <button
-      className="square"
+      className={`square${isWinning ? '-winning' : ''}`}
       onClick={onSquareClick}
     >
       {value}
@@ -27,21 +28,30 @@ function Board({isXNext, squares , onPlay}) {
     }
     onPlay(nextSquares);
   }
-  const winner = calculateWinner(squares);
+  // get winner and winning line (if any)
+  const result = calculateWinnerLine(squares);
+  const winner = result.winner;
   let status;
   if (winner) {
     status = 'Winner: ' + winner;
+  } else if (squares.every((cell) => cell !== null)) {
+    status = 'Draw';
   } else {
     status = 'Next player: ' + (isXNext ? 'X' : 'O');
   }
-  const board = [0,1,2].map((i) => ( 
-    
-    <div className='board-row'>
+  const board = [0,1,2].map((i) => (
+    <div className='board-row' key={i}>
       {[0,1,2].map((j) => {
-        return(
-        <Square value={squares[3*i + j]} onSquareClick={() => handleClick(3*i + j)} />
-      );})
-    }
+        const idx = 3*i + j;
+        return (
+          <Square
+            key={idx}
+            value={squares[idx]}
+            onSquareClick={() => handleClick(idx)}
+            isWinning={result.line && result.line.includes(idx)}
+          />
+        );
+      })}
     </div>
   ));
     
@@ -59,6 +69,7 @@ function Board({isXNext, squares , onPlay}) {
 function Game() {
   
   const [switches, setSwitches] = useState(true);
+  // initialize history as an array with one board (9 nulls)
   const [history,setHistory] = useState([Array(9).fill(null)]);
   
   const [currentMove, setCurrentMove] = useState(0);
@@ -140,7 +151,8 @@ function ToggleButton({switches, handleSwitches}) {
   );
 }
 
-function calculateWinner(squares) {
+// new helper: returns both winner and winning line indices
+function calculateWinnerLine(squares) {
   const lines = [
     [0, 1, 2],
     [3, 4, 5],
@@ -153,10 +165,30 @@ function calculateWinner(squares) {
   ];
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
-    
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return { winner: squares[a], line: [a, b, c] };
     }
   }
-  return null;
+  return { winner: null, line: null };
+}
+
+function calculateWinner(squares) {
+   const lines = [
+     [0, 1, 2],
+     [3, 4, 5],
+     [6, 7, 8],
+     [0, 3, 6],
+     [1, 4, 7],
+     [2, 5, 8],
+     [0, 4, 8],
+     [2, 4, 6]
+   ];
+   for (let i = 0; i < lines.length; i++) {
+     const [a, b, c] = lines[i];
+     
+     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+       return squares[a];
+     }
+   }
+   return null;
 }
